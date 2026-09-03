@@ -1,0 +1,95 @@
+﻿<Window x:Class="MediaConverter.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Evrensel Dönüştürücü" Height="600" Width="650"
+        WindowStartupLocation="CenterScreen" Background="#F0F3F9">
+
+    <Grid Margin="20">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <!-- Başlık ve Sonucu Göster Butonu -->
+        <Grid Grid.Row="0" Margin="0,0,0,15">
+            <TextBlock Text="Medya Dönüştürücü" FontSize="22" FontWeight="Bold" Foreground="#2C3E50" VerticalAlignment="Center"/>
+            <Button Name="BtnSonucuGoster" Content="📁 Sonucu Göster" Width="140" Height="35" HorizontalAlignment="Right" Background="#2ECC71" Foreground="White" FontWeight="Bold" BorderThickness="0" Click="BtnSonucuGoster_Click">
+                <Button.Resources>
+                    <Style TargetType="Border">
+                        <Setter Property="CornerRadius" Value="6"/>
+                    </Style>
+                </Button.Resources>
+            </Button>
+        </Grid>
+
+        <!-- İşlem Türü Seçimi -->
+        <GroupBox Grid.Row="1" Header="İşlem Türü Seçin" Foreground="#34495E" FontWeight="Bold" Margin="0,0,0,15" Padding="10">
+            <ComboBox Name="CmbIslem" Height="30" FontSize="14" SelectedIndex="0">
+                <ComboBoxItem Content="M4A'ya Dönüştür" Tag="video to audio (to m4a).bat"/>
+                <ComboBoxItem Content="Sadece Sesi Ayıkla (MKA)" Tag="video to audio.bat"/>
+            </ComboBox>
+        </GroupBox>
+
+        <!-- Dosya Seçimi ve Liste -->
+        <GroupBox Grid.Row="2" Header="İşlenecek Dosyalar" Foreground="#34495E" FontWeight="Bold" Margin="0,0,0,15" Padding="10">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+
+                <ListBox Name="LstDosyalar" Height="90" Margin="0,0,10,0" BorderBrush="#D0D7E5" BorderThickness="1" 
+                         HorizontalContentAlignment="Stretch" ScrollViewer.HorizontalScrollBarVisibility="Disabled">
+                    <ListBox.ItemTemplate>
+                        <DataTemplate>
+                            <Grid Margin="0,4">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+
+                                <TextBlock Margin="0,0,10,0" Text="{Binding}" TextTrimming="CharacterEllipsis" ToolTip="{Binding}" VerticalAlignment="Center"/>
+
+                                <Button Background="#E74C3C" BorderThickness="0" Click="BtnDosyaSil_Click" Content="✖" Cursor="Hand" Foreground="White" Grid.Column="1" Height="22" Tag="{Binding}" Width="22">
+                                    <Button.Resources>
+                                        <Style TargetType="Border">
+                                            <Setter Property="CornerRadius" Value="11"/>
+                                        </Style>
+                                    </Button.Resources>
+                                </Button>
+                            </Grid>
+                        </DataTemplate>
+                    </ListBox.ItemTemplate>
+                </ListBox>
+
+                <Button Name="BtnDosyaSec" Grid.Column="1" Content="Dosyaları Seç" Width="100" Height="35" VerticalAlignment="Top" Background="#95A5A6" Foreground="White" BorderThickness="0" Click="BtnDosyaSec_Click">
+                    <Button.Resources>
+                        <Style TargetType="Border">
+                            <Setter Property="CornerRadius" Value="4"/>
+                        </Style>
+                    </Button.Resources>
+                </Button>
+            </Grid>
+        </GroupBox>
+
+        <!-- Log Ekranı -->
+        <Border Grid.Row="4" Background="White" CornerRadius="8" Padding="10" BorderBrush="#D0D7E5" BorderThickness="1" Margin="0,0,0,15">
+            <TextBox Name="TxtLog" IsReadOnly="True" BorderThickness="0" FontFamily="Consolas" Foreground="#34495E" TextWrapping="Wrap" VerticalScrollBarVisibility="Auto"/>
+        </Border>
+
+        <!-- Başlat Butonu -->
+        <StackPanel Grid.Row="5" Orientation="Horizontal" HorizontalAlignment="Right">
+            <Button Name="BtnBaslat" Content="Seçili Dosyaları İşle" Width="170" Height="40" Background="#3498DB" Foreground="White" FontWeight="Bold" FontSize="14" BorderThickness="0" Click="BtnBaslat_Click">
+                <Button.Resources>
+                    <Style TargetType="Border">
+                        <Setter Property="CornerRadius" Value="6"/>
+                    </Style>
+                </Button.Resources>
+            </Button>
+        </StackPanel>
+    </Grid>
+</Window>

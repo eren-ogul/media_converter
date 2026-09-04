@@ -3,27 +3,25 @@ set "PATH=%~dp0bin;%PATH%"
 setlocal enabledelayedexpansion
 set sayac=1
 
-:: Gerekli klasörleri otomatik oluşturur (eğer yoksa)
+:: Gerekli klasörleri otomatik oluşturur
 if not exist "input" mkdir "input"
 if not exist "output" mkdir "output"
 if not exist "input\input_old" mkdir "input\input_old"
 
 cls
 echo ==================================================
-echo       SES AYIKLAMA ARACI (All formats to .mka)
+echo     VIDEO COZUNURLUK DUSURUCU (1080p - %%100 GPU)
 echo ==================================================
 echo.
-echo [!] "input" klasorundeki dosyalar taraniyor...
+echo [!] "input" klasorundeki videolar taraniyor...
 echo.
 
-:: "input" klasöründeki mp4'leri tarar
 for %%i in ("input\*.mp4" "input\*.mkv" "input\*.webm" "input\*.avi" "input\*.mov" "input\*.flv") do (
+    echo --------------------------------------------------
     echo Isleniyor: "%%~nxi"
     
-    :: %%~ni komutu dosyanın orijinal adını uzantısız olarak alır
-    ffmpeg -i "%%i" -vn -c:a copy "output\%%~ni_!sayac!(only audio).mka"
-
-    :: 2. ADIM: İşlem biter bitmez orijinal videoyu input_old içine taşı
+    ffmpeg -hwaccel cuda -hwaccel_output_format cuda -i "%%i" -vf "scale_cuda=-2:1080" -c:v h264_nvenc -cq 28 -c:a copy "output\%%~ni_!sayac!(1080p).mp4"
+    
     move "%%i" "input\input_old\" >nul
     echo Tasindi  : "%%~nxi" -^> input_old klasorune
     
@@ -32,6 +30,6 @@ for %%i in ("input\*.mp4" "input\*.mkv" "input\*.webm" "input\*.avi" "input\*.mo
 
 echo.
 echo ==================================================
-echo [BASARILI] Islem tamamlandi! 
-echo Dosyalar "output" klasorune kaydedildi.
+echo [BASARILI] Tum donusturme islemleri tamamlandi! 
+echo Kucultulen videolar "output" klasorune kaydedildi.
 echo ==================================================

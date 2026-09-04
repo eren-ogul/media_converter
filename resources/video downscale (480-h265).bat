@@ -1,5 +1,5 @@
 @echo off
-set "PATH=%~dp0bin;%PATH%"
+set "PATH=%~dp0;%PATH%"
 setlocal enabledelayedexpansion
 set sayac=1
 

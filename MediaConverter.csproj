@@ -6,6 +6,8 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <UseWPF>true</UseWPF>
+
+	  <ApplicationIcon>yt_icon_red_digital (1).ico</ApplicationIcon>
   </PropertyGroup>
 
   <ItemGroup>

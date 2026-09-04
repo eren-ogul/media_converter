@@ -338,15 +338,6 @@ git commit -m "Yeni özellik eklendi"
 git push origin feature/yeni-ozellik
 ```
 
----
-
-## 📜 Lisans ve Üçüncü Taraf Bileşenler
-
-Bu proje medya işleme için **FFmpeg** kullanır. FFmpeg kendi lisans koşullarına tabidir.
-
-Repository'de şu anda ayrı bir `LICENSE` dosyası bulunmadığından, proje için açık kaynak lisansı belirtilmiş değildir. Projeyi açık kaynak lisansı altında dağıtmak istiyorsanız uygun bir `LICENSE` dosyası ekleyebilirsiniz.
-
-FFmpeg dağıtımı yaparken kullandığınız FFmpeg build'inin lisans koşullarını ayrıca kontrol etmeniz önerilir.
 
 ---
 

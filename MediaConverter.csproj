@@ -10,17 +10,11 @@
 	  <ApplicationIcon>logo.ico</ApplicationIcon>
   </PropertyGroup>
 
-  <ItemGroup>
-    <None Update="video to audio %28to m4a%29.bat">
-      <CopyToOutputDirectory>Never</CopyToOutputDirectory>
-    </None>
-
-	  <None Update="*.bat">
-		  <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-	  </None>
-	  <None Update="*.exe">
-		  <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-	  </None>  
-  </ItemGroup>
+	<ItemGroup>
+		<!-- resources klasöründeki her şeyi build ve publish aşamasında otomatik olarak çıktı dizinine kopyalar -->
+		<None Update="resources\**\*">
+			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+		</None>
+	</ItemGroup>
 
 </Project>

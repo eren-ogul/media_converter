@@ -146,7 +146,7 @@ namespace MediaConverter
             if (string.IsNullOrEmpty(secilenBatAdi)) return;
 
             string exeKlasoru = AppDomain.CurrentDomain.BaseDirectory;
-            string batDosyaYolu = Path.Combine(exeKlasoru, secilenBatAdi);
+            string batDosyaYolu = Path.Combine(exeKlasoru, "resources", secilenBatAdi);
 
             if (!File.Exists(batDosyaYolu))
             {

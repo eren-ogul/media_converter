@@ -36,33 +36,44 @@
 
             <!-- 1. Menü: Ses İşlemleri -->
             <GroupBox Grid.Column="0" Header="Ses Formatı Seçimi" Foreground="#34495E" FontWeight="Bold" Padding="10">
-                <ComboBox Name="CmbAudio" Height="30" FontSize="13" SelectedIndex="-1" SelectionChanged="CmbAudio_SelectionChanged">
-                    <ComboBoxItem Content="MKA (original audio)" Tag="to audio mka.bat"/>
-                    <ComboBoxItem Content="AAC" Tag="to audio aac.bat"/>
-                    <ComboBoxItem Content="M4A" Tag="to audio m4a.bat"/>
-                    <ComboBoxItem Content="MP3" Tag="to audio mp3.bat"/>
-                    <ComboBoxItem Content="OGG" Tag="to audio ogg.bat"/>
-                    <ComboBoxItem Content="WAW" Tag="to audio waw.bat"/>
-                </ComboBox>
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="*"/>
+                        <RowDefinition Height="Auto"/>
+                    </Grid.RowDefinitions>
+
+                    <ComboBox Name="CmbAudio" Height="30" FontSize="13" SelectedIndex="-1" SelectionChanged="CmbAudio_SelectionChanged" VerticalAlignment="Top" RenderTransformOrigin="0.498,-0.311">
+                        <ComboBoxItem Content="MKA (original audio)" Tag="to audio mka.bat"/>
+                        <ComboBoxItem Content="AAC" Tag="to audio aac.bat"/>
+                        <ComboBoxItem Content="M4A" Tag="to audio m4a.bat"/>
+                        <ComboBoxItem Content="MP3" Tag="to audio mp3.bat"/>
+                        <ComboBoxItem Content="OGG" Tag="to audio ogg.bat"/>
+                        <ComboBoxItem Content="WAW" Tag="to audio waw.bat"/>
+                    </ComboBox>
+                </Grid>
             </GroupBox>
 
             <!-- 2. Menü: Video İşlemleri -->
             <GroupBox Grid.Column="2" Header="Video Çözünürlüğü Seçimi" Foreground="#34495E" FontWeight="Bold" Padding="10">
-                <ComboBox Name="CmbVideo" Height="30" FontSize="13" SelectedIndex="-1" SelectionChanged="CmbVideo_SelectionChanged">
-                    <ComboBoxItem Content="480p    h264(gpu)" Tag="video downscale (480-h264).bat"/>
-                    <ComboBoxItem Content="480p    h265(gpu)" Tag="video downscale (480-h265).bat"/>
-                    <ComboBoxItem Content="720p    h264(gpu)" Tag="video downscale (720-h264).bat"/>
-                    <ComboBoxItem Content="720p    h265(gpu)" Tag="video downscale (720-h265).bat"/>
-                    <ComboBoxItem Content="1080p  h264(gpu)" Tag="video downscale (1080-h264).bat"/>
-                    <ComboBoxItem Content="1080p  h265(gpu)" Tag="video downscale (1080-h265).bat"/>
-                    <ComboBoxItem Content="1440p  h264(gpu)" Tag="video downscale (1440-h264).bat"/>
-                    <ComboBoxItem Content="1440p  h265(gpu)" Tag="video downscale (1440-h265).bat"/>
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="*"/>
+                        <RowDefinition Height="Auto"/>
+                    </Grid.RowDefinitions>
 
-                    
-                    
-                    
-                    
-                </ComboBox>
+                    <ComboBox Name="CmbVideo" Height="30" FontSize="13" SelectedIndex="-1" SelectionChanged="CmbVideo_SelectionChanged" VerticalAlignment="Center">
+                        <ComboBoxItem Content="480p    h264(gpu)" Tag="video downscale (480-h264).bat"/>
+                        <ComboBoxItem Content="480p    h265(gpu)" Tag="video downscale (480-h265).bat"/>
+                        <ComboBoxItem Content="720p    h264(gpu)" Tag="video downscale (720-h264).bat"/>
+                        <ComboBoxItem Content="720p    h265(gpu)" Tag="video downscale (720-h265).bat"/>
+                        <ComboBoxItem Content="1080p  h264(gpu)" Tag="video downscale (1080-h264).bat"/>
+                        <ComboBoxItem Content="1080p  h265(gpu)" Tag="video downscale (1080-h265).bat"/>
+                        <ComboBoxItem Content="1440p  h264(gpu)" Tag="video downscale (1440-h264).bat"/>
+                        <ComboBoxItem Content="1440p  h265(gpu)" Tag="video downscale (1440-h265).bat"/>
+                    </ComboBox>
+
+                    <TextBlock Grid.Row="1" Text="* H.264 formatı 10-bit videolarda renk kaybına sebep olabilir." Foreground="Gray" FontSize="7" FontStyle="Italic" Margin="2,1,0,0" TextWrapping="Wrap"/>
+                </Grid>
             </GroupBox>
         </Grid>
 
@@ -156,15 +167,26 @@
             <TextBox Name="TxtLog" IsReadOnly="True" BorderThickness="0" FontFamily="Consolas" Foreground="#34495E" TextWrapping="Wrap" VerticalScrollBarVisibility="Auto"/>
         </Border>
 
-        <!-- Başlat Butonu -->
-        <StackPanel Grid.Row="5" Orientation="Horizontal" HorizontalAlignment="Right">
-            <Button Name="BtnBaslat" Content="Dönüştür" Width="170" Height="40" Background="#3498DB" Foreground="White" FontWeight="Bold" FontSize="14" BorderThickness="0" Click="BtnBaslat_Click">
+        <!-- Alt Kısım: Yükleme Çubuğu ve Başlat Butonu (Grid.Row="5") -->
+        <Grid Grid.Row="5" Margin="0,10,0,0">
+
+            <!-- Sol Tarafta İlerleme Çubuğu ve Sayaç -->
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Left" VerticalAlignment="Center">
+                <Grid Width="400" Height="25">
+                    <ProgressBar Name="PbProgress" Minimum="0" Maximum="100" />
+                    <TextBlock Name="TxtPercentage" Text="%0" HorizontalAlignment="Center" VerticalAlignment="Center" FontWeight="Bold" Foreground="Black" />
+                </Grid>
+                <TextBlock Name="TxtFileCount" Text="0 / 0" Margin="15,0,0,0" VerticalAlignment="Center" FontSize="16" FontWeight="Bold" />
+            </StackPanel>
+
+            <!-- Sağ Tarafta Dönüştür Butonu -->
+            <Button Name="BtnBaslat" Content="Dönüştür" Width="130" Height="40" Background="#3498DB" Foreground="White" FontWeight="Bold" FontSize="14" BorderThickness="0" Click="BtnBaslat_Click" HorizontalAlignment="Right">
                 <Button.Resources>
-                    <Style TargetType="Border">
+                    <Style TargetType="{x:Type Border}">
                         <Setter Property="CornerRadius" Value="6"/>
                     </Style>
                 </Button.Resources>
             </Button>
-        </StackPanel>
+        </Grid>
     </Grid>
 </Window>

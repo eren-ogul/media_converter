@@ -2,15 +2,155 @@
 using System;
 using System.Collections.ObjectModel;
 using System.Diagnostics;
+using System.Globalization;
 using System.IO;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
+using static System.Runtime.InteropServices.JavaScript.JSType;
 
 namespace MediaConverter
 {
     public partial class MainWindow : Window
     {
+
+        private Task RunBatFileWithProgressAsync(string batFileName)
+        {
+            var tcs = new TaskCompletionSource<bool>();
+
+            // "input" klasöründeki dosya sayısını bul (input_old klasörünü sayma)
+            string inputDir = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "input");
+            int totalFiles = Directory.Exists(inputDir) ? Directory.GetFiles(inputDir).Length : 0;
+            int currentFileIndex = 0;
+            TimeSpan totalDuration = TimeSpan.Zero;
+            string currentFileName = "";
+
+            string batPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "resources", batFileName);
+
+            Process process = new Process();
+            process.StartInfo.FileName = batPath;
+            process.StartInfo.UseShellExecute = false;
+            process.StartInfo.RedirectStandardOutput = true; // "echo Isleniyor:" yazılarını okumak için
+            process.StartInfo.RedirectStandardError = true;  // ffmpeg'in yüzde loglarını okumak için
+            process.StartInfo.CreateNoWindow = true;         // Siyah ekranı gizle
+
+            // 1. KISIM: .bat dosyasının kendi yazdığı yazıları (echo) dinle
+            process.OutputDataReceived += (sender, e) =>
+            {
+                if (!string.IsNullOrEmpty(e.Data) && e.Data.Contains("Isleniyor:"))
+                {
+                    currentFileIndex++;
+                    totalDuration = TimeSpan.Zero;
+
+                    // Dosya adını temizle (Örn: Isleniyor: "video.mp4" -> video.mp4)
+                    string newFileName = e.Data.Replace("Isleniyor:", "").Trim(' ', '"');
+
+                    Application.Current.Dispatcher.BeginInvoke(new Action(() =>
+                    {
+                        // Varsa eski dosyanın bittiğini yazdır
+                        if (!string.IsNullOrEmpty(currentFileName))
+                        {
+                            TxtLog.AppendText($"[✓] Biten dosya: {currentFileName}\n\n");
+                        }
+
+                        // Yeni dosyaya geç ve başladığını yazdır
+                        currentFileName = newFileName;
+                        TxtLog.AppendText($"[►] Başlanan dosya: {currentFileName}...\n");
+                        TxtLog.ScrollToEnd();
+
+                        TxtFileCount.Text = $"{currentFileIndex} / {totalFiles}";
+                        PbProgress.Value = 0;
+                        TxtPercentage.Text = "%0";
+                    }));
+                }
+            };
+
+            // 2. KISIM: FFmpeg'in süre/progress çıktılarını dinle
+            process.ErrorDataReceived += (sender, e) =>
+            {
+                if (string.IsNullOrEmpty(e.Data)) return;
+
+                // Özel Hata 22 (10-bit HDR / H264 Uyuşmazlığı) Kontrolü
+                if (e.Data.Contains("-22") || e.Data.Contains("Invalid argument"))
+                {
+                    Application.Current.Dispatcher.BeginInvoke(new Action(() =>
+                    {
+                        TxtLog.AppendText($"\n[!] HATA: Bu video yüksek renk derinliğine (10-bit HDR) sahip olduğu için H.264 kodlayıcı ile işlenemedi.\n");
+                        TxtLog.AppendText($"[!] Çözüm: Lütfen video çözünürlüğü seçerken H.264 yerine H.265 (HEVC) seçeneklerini kullanın.\n\n");
+                        TxtLog.ScrollToEnd();
+                    }));
+                }
+
+                //Eğer FFmpeg hata(Error) verirse bunu log ekranına yazdıralım
+                else if (e.Data.Contains("Error") || e.Data.Contains("fatal") || e.Data.Contains("Invalid"))
+                {
+                    string hataMesaji = e.Data;
+                    Application.Current.Dispatcher.BeginInvoke(new Action(() =>
+                    {
+                        TxtLog.AppendText($"[!] FFmpeg Uyarı/Hata: {hataMesaji}\n");
+                        TxtLog.ScrollToEnd();
+                    }));
+                }
+
+                // Toplam süreyi yakala
+                if (totalDuration == TimeSpan.Zero && e.Data.Contains("Duration:"))
+                {
+                    var match = Regex.Match(e.Data, @"Duration: (\d{2}:\d{2}:\d{2}\.\d+)");
+                    if (match.Success)
+                    {
+                        TimeSpan.TryParse(match.Groups[1].Value, CultureInfo.InvariantCulture, out totalDuration);
+                    }
+                }
+
+                // Anlık süreyi yakala ve yüzge hesapla
+                if (totalDuration != TimeSpan.Zero && e.Data.Contains("time="))
+                {
+                    var match = Regex.Match(e.Data, @"time=(\d{2}:\d{2}:\d{2}\.\d+)");
+                    if (match.Success)
+                    {
+                        if (TimeSpan.TryParse(match.Groups[1].Value, CultureInfo.InvariantCulture, out TimeSpan currentTime))
+                        {
+                            double percentage = (currentTime.TotalSeconds / totalDuration.TotalSeconds) * 100;
+
+                            Application.Current.Dispatcher.BeginInvoke(new Action(() =>
+                            {
+                                if (percentage > 100) percentage = 100;
+                                PbProgress.Value = percentage;
+                                TxtPercentage.Text = $"%{percentage:F0}";
+                            }));
+                        }
+                    }
+                }
+            };
+
+            process.EnableRaisingEvents = true;
+            process.Exited += (sender, e) =>
+            {
+                // İşlem tamamen bitince UI'ı son kez güncelle
+                Application.Current.Dispatcher.BeginInvoke(new Action(() =>
+                {
+                    // En son biten dosyayı da bitti olarak ekrana yazdır
+                    if (!string.IsNullOrEmpty(currentFileName))
+                    {
+                        TxtLog.AppendText($"[✓] Biten dosya: {currentFileName}\n\n");
+                    }
+
+                    PbProgress.Value = 100;
+                    TxtPercentage.Text = "%100";
+                }));
+
+                tcs.SetResult(true);
+                process.Dispose();
+            };
+
+            process.Start();
+            process.BeginOutputReadLine(); // Echo dinlemeyi başlat
+            process.BeginErrorReadLine();  // FFmpeg dinlemeyi başlat
+
+            return tcs.Task;
+        }
+
         private ObservableCollection<string> secilenDosyaYollari = new ObservableCollection<string>();
         private bool isUpdatingCombo = false; // Sonsuz döngüyü önleyen kilit
 
@@ -178,61 +318,81 @@ namespace MediaConverter
                 }
             }
 
-            TxtLog.AppendText("İşlem başlatılıyor...\n");
+            TxtLog.AppendText($"----------------------------------\n");
+            TxtLog.AppendText($"Toplam {secilenDosyaYollari.Count} adet dosya işlenecek.\n");
+            TxtLog.AppendText($"----------------------------------\n\n");
+            TxtLog.ScrollToEnd();
 
-            await Task.Run(() => CalistirVeDinle(batDosyaYolu, exeKlasoru));
 
-            BtnBaslat.IsEnabled = true;
-            BtnDosyaSec.IsEnabled = true;
-            CmbAudio.IsEnabled = true;
-            CmbVideo.IsEnabled = true;
-            MessageBox.Show("İşlem başarıyla tamamlandı!", "Bilgi", MessageBoxButton.OK, MessageBoxImage.Information);
-
-            secilenDosyaYollari.Clear();
-        }
-
-        // --- ASENKRON CMD OKUMA (Kilitlenme Önleyici) ---
-
-        // --- ASENKRON CMD OKUMA (Kilitlenme Önleyici & Temiz Log) ---
-        private void CalistirVeDinle(string batYolu, string calismaDizini)
-        {
-            ProcessStartInfo psi = new ProcessStartInfo
+            // --- ÇAKIŞMA ÖNLEME KODU ---
+            string outputKlasoru = Path.Combine(exeKlasoru, "output");
+            if (Directory.Exists(outputKlasoru))
             {
-                FileName = batYolu,
-                WorkingDirectory = calismaDizini,
-                UseShellExecute = false,
-                RedirectStandardOutput = true,
-                RedirectStandardError = true,
-                CreateNoWindow = true
-            };
+                // Hangi .bat dosyası çalışıyorsa çözünürlüğünü yakala
+                string hedefCozunurluk = "";
+                if (secilenBatAdi.Contains("480")) hedefCozunurluk = "480p";
+                else if (secilenBatAdi.Contains("720")) hedefCozunurluk = "720p";
+                else if (secilenBatAdi.Contains("1080")) hedefCozunurluk = "1080p";
+                else if (secilenBatAdi.Contains("1440")) hedefCozunurluk = "1440p";
 
-            using (Process process = new Process { StartInfo = psi })
-            {
-                // 1. KANAL (TEMİZ MESAJLAR): Sadece sizin ".bat" dosyasındaki echo mesajlarınız ekrana basılır.
-                process.OutputDataReceived += (s, args) =>
+
+                // Video menüsü seçildiyse arayacağımız uzantı kesinlikle ".mp4" olmalı.
+                // Eğer ses menüsü seçildiyse çıktı uzantısını bat adından tahmin et.
+                string hedefUzanti = ".mp4";
+                if (CmbAudio.SelectedIndex != -1)
                 {
-                    if (!string.IsNullOrEmpty(args.Data))
+                    if (secilenBatAdi.Contains("mp3")) hedefUzanti = ".mp3";
+                    else if (secilenBatAdi.Contains("mka")) hedefUzanti = ".mka";
+                    else if (secilenBatAdi.Contains("m4a")) hedefUzanti = ".m4a";
+                    else if (secilenBatAdi.Contains("aac")) hedefUzanti = ".aac";
+                    else if (secilenBatAdi.Contains("ogg")) hedefUzanti = ".ogg";
+                    else if (secilenBatAdi.Contains("wav") || secilenBatAdi.Contains("waw")) hedefUzanti = ".wav";
+                    else hedefUzanti = ".*"; // Bilinmeyen ses formatıysa genel ara
+                }
+
+                foreach (string dosya in secilenDosyaYollari)
+                {
+                    string dosyaAdiSensiz = Path.GetFileNameWithoutExtension(dosya);
+
+                    // Sadece o anki dosyanın, ilgili çözünürlükteki ve uzantıdaki çıktısını hedefler.
+                    // Output klasöründeki .mkv gibi diğer orijinal/farklı formatlı dosyalara dokunmaz!
+                    string aramaDeseni = string.IsNullOrEmpty(hedefCozunurluk)
+                        ? $"{dosyaAdiSensiz}_*{hedefUzanti}"
+                        : $"{dosyaAdiSensiz}_*({hedefCozunurluk}){hedefUzanti}";
+
+                    string[] eskiUrunler = Directory.GetFiles(outputKlasoru, aramaDeseni);
+                    foreach (var eski in eskiUrunler)
                     {
-                        Dispatcher.Invoke(() =>
+                        try
                         {
-                            TxtLog.AppendText(args.Data + "\n");
-                            TxtLog.ScrollToEnd();
-                        });
+                            Microsoft.VisualBasic.FileIO.FileSystem.DeleteFile(
+                                eski,
+                                Microsoft.VisualBasic.FileIO.UIOption.OnlyErrorDialogs,
+                                Microsoft.VisualBasic.FileIO.RecycleOption.SendToRecycleBin
+                            );
+                        }
+                        catch { }
                     }
-                };
+                }
+                // ---------------------------
 
-                // 2. KANAL (FFmpeg SPAM): Arka planda donmayı önlemek için okunur AMA ekrana yazdırılmaz.
-                process.ErrorDataReceived += (s, args) =>
-                {
-                    // İçi boş bırakıldı. FFmpeg yazıları ekrandan gizlendi.
-                };
+                // Motoru Çalıştır
 
-                process.Start();
-                process.BeginOutputReadLine();
-                process.BeginErrorReadLine();
 
-                process.WaitForExit();
+                await RunBatFileWithProgressAsync(secilenBatAdi);
+
+                BtnBaslat.IsEnabled = true;
+                BtnDosyaSec.IsEnabled = true;
+                CmbAudio.IsEnabled = true;
+                CmbVideo.IsEnabled = true;
+                TxtLog.AppendText($"----------------------------------\n");
+                TxtLog.AppendText("İŞLEMLER Tamamlandı!\n");
+                TxtLog.ScrollToEnd();
+                secilenDosyaYollari.Clear();
             }
+
+            // --- ASENKRON CMD OKUMA (Kilitlenme Önleyici) ---
+
         }
     }
 }

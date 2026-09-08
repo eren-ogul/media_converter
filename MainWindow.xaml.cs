@@ -326,6 +326,8 @@ namespace MediaConverter
 
             // --- ÇAKIŞMA ÖNLEME KODU ---
             string outputKlasoru = Path.Combine(exeKlasoru, "output");
+            Directory.CreateDirectory(outputKlasoru);
+
             if (Directory.Exists(outputKlasoru))
             {
                 // Hangi .bat dosyası çalışıyorsa çözünürlüğünü yakala
